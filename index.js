@@ -1,36 +1,43 @@
-const tmi = require('tmi.js');
-const generator = require('./textGenerator');
+const openai = require('openai');
+const Twitch = require('twitch-js');
+var TwitchJs = require('twitch-js')
 
-const reputation = {};
-const client = new tmi.Client({
-    options: { debug: true },
-    connection: {
-        secure: true,
-        reconnect: true
-    },
-    identity: {
-        username: 'wankyjizard',
-        password: process.env.TWITCH_OAUTH_TOKEN
-    },
-    channels: ['reiiigns']
+openai.apiKey = 'process.env.OPENAI_SECRET_KEY';
+
+function generateResponse(prompt) {
+    return openai.completions
+        .create({
+            prompt: prompt,
+            model: 'text-davinci-002',
+            max_tokens: 1024,
+            temperature: 0.5,
+        })
+        .then((response) => response.choices[0].text);
+}
+    ({
+  options: { debug: true },
+  connection: {
+    secure: true,
+    reconnect: true
+  },
+  identity: {
+      username: 'process.env.TWITCH_USERNAME',
+      password: 'process.env.TWITCH_OAUTH_TOKEN',
+  },
+      channels: ['reiiigns']
 });
 
-client.connect();
+chat.on('message', (channel, userstate, message, self) => {
+    if (self) return;
 
-client.on('message', (channel, tags, message, self) => {
-    if (self || !message.startsWith('!')) {
-        return;
-    }
+    generateResponse(message).then((response) => {
+        chat.say(channel, response);
+    });
+})();
+chat.on(chatConstants.EVENTS.WHISPER, (from, userstate, message, self) => {
+    if (self) return;
 
-    const args = message.slice(1).split(' ');
-    const command = args.shift().toLowerCase();
-
-    if (command === 'hi') {
-        client.say(channel, `@${tags.username}, yo what's up!`);
-    } else if (command === 'generate') {
-        (async () => {
-            const prompt = args.join(' ');
-            client.say(channel, `@${tags.username}, ${await generator.generate(prompt)}`);
-        })();
+    if (message === '!invite') {
+        chat.whisper(from, `/invite ${from}`);
     }
 });
